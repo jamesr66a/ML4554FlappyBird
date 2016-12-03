@@ -76,3 +76,13 @@ class QNetwork:
       self.arch['out']
     ], feed_dict={self.arch['x']: x})
     return pred
+
+if __name__=='__main__':
+  qn = QNetwork(84, 4, 2)
+
+  import numpy as np
+
+  with tf.Session() as sess:
+    sess.run(tf.initialize_all_variables())
+    qn.train(np.random.randn(100, 84, 84, 4), np.random.randn(100, 2), sess)
+    print(qn.predict(np.random.randn(1, 84, 84, 4), sess))
