@@ -143,12 +143,13 @@ class FlappyBirdGame:
     self.playerFlapAcc =  -9   # players speed on flapping
     self.playerFlapped = False # True when player flaps 
 
-  def step(self,action, steps=4):
+  def step(self,action, steps=6, display=False):
     frames = np.zeros(
       (steps, self.SCREENHEIGHT, self.SCREENWIDTH, 3), dtype=np.float32
     )
     for frame_idx in xrange(steps):
       reward = 0
+      action = action if frame_idx == 0 else 0
       if action == 1:
         if self.playery > -2 * self.IMAGES['player'][0].get_height():
           self.playerVelY = self.playerFlapAcc
@@ -221,6 +222,9 @@ class FlappyBirdGame:
       imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
       bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
       frames[frame_idx, :, :, :] = np.array(bmpfile, dtype=np.float32)
+
+      if display:
+        self.render()
 
     return frames, reward, False, {}
 
@@ -322,8 +326,7 @@ if __name__ == '__main__':
   import time
 
   while True:
-    _, _, terminal, _ = fb.step(np.random.randint(2))
-    fb.render()
+    _, _, terminal, _ = fb.step(np.random.randint(2), display=True)
     if terminal:
       fb.reset()
     time.sleep(1./30)
