@@ -2,6 +2,7 @@
 #
 # Adapted from https://github.com/sourabhv/FlapPyBird
 
+from skimage import color
 import Image
 import itertools
 import os
@@ -143,9 +144,9 @@ class FlappyBirdGame:
     self.playerFlapAcc =  -9   # players speed on flapping
     self.playerFlapped = False # True when player flaps 
 
-  def step(self,action, steps=6, display=False):
+  def step(self, action, steps=6, display=False):
     frames = np.zeros(
-      (steps, self.SCREENHEIGHT, self.SCREENWIDTH, 3), dtype=np.float32
+      (steps, 84, 84), dtype=np.float32
     )
     for frame_idx in xrange(steps):
       reward = 0
@@ -164,9 +165,8 @@ class FlappyBirdGame:
         #pygame.image.save(self.SCREEN, 'temp.bmp')
         imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
         bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
-        return scipy.misc.imresize(
-          np.array(bmpfile, dtype=np.float32), 0.25
-        ), reward, True, {}
+        # TODO: fix
+        return frames, reward, True, {}
 
       playerMidPos = self.playerx + self.IMAGES['player'][0].get_width() / 2
       for pipe in self.upperPipes:
@@ -220,8 +220,10 @@ class FlappyBirdGame:
       #pygame.image.save(self.SCREEN, 'temp.bmp')
       #bmpfile = Image.open('temp.bmp');
       imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
-      bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
-      frames[frame_idx, :, :, :] = np.array(bmpfile, dtype=np.float32)
+      bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr)
+      frames[frame_idx, :, :] = color.rgb2gray(scipy.misc.imresize(
+        np.array(bmpfile, dtype=np.float32), (84, 84)
+      ))
 
       if display:
         self.render()
