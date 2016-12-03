@@ -15,7 +15,7 @@ class FlappyBirdGame:
     self.SCREENWIDTH = 280
     self.SCREENHEIGHT = 510
 
-    self.PIPEGAPSIZE = 200
+    self.PIPEGAPSIZE = 100
     self.BASEY = self.SCREENHEIGHT * 0.79
     self.IMAGES = {}
     self.SOUNDS = {}
@@ -143,81 +143,86 @@ class FlappyBirdGame:
     self.playerFlapAcc =  -9   # players speed on flapping
     self.playerFlapped = False # True when player flaps 
 
-  def step(self,action):
-    reward = 0
-    if action == 1:
-      if self.playery > -2 * self.IMAGES['player'][0].get_height():
-        self.playerVelY = self.playerFlapAcc
-        self.playerFlapped = True
-
-    crashTest = self.checkCrash(
-      {'x': self.playerx, 'y': self.playery, 'index': self.playerIndex},
-      self.upperPipes, self.lowerPipes
+  def step(self,action, steps=4):
+    frames = np.zeros(
+      (steps, self.SCREENHEIGHT, self.SCREENWIDTH, 3), dtype=np.float32
     )
+    for frame_idx in xrange(steps):
+      reward = 0
+      if action == 1:
+        if self.playery > -2 * self.IMAGES['player'][0].get_height():
+          self.playerVelY = self.playerFlapAcc
+          self.playerFlapped = True
 
-    if crashTest[0]:
+      crashTest = self.checkCrash(
+        {'x': self.playerx, 'y': self.playery, 'index': self.playerIndex},
+        self.upperPipes, self.lowerPipes
+      )
+
+      if crashTest[0]:
+        #pygame.image.save(self.SCREEN, 'temp.bmp')
+        imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
+        bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
+        return scipy.misc.imresize(
+          np.array(bmpfile, dtype=np.float32), 0.25
+        ), reward, True, {}
+
+      playerMidPos = self.playerx + self.IMAGES['player'][0].get_width() / 2
+      for pipe in self.upperPipes:
+        pipeMidPos = pipe['x'] + self.IMAGES['pipe'][0].get_width() / 2
+        if pipeMidPos <= playerMidPos < pipeMidPos + 4:
+          reward += 100
+          self.score += 1
+
+      # playerIndex basex change
+      if (self.loopIter + 1) % 3 == 0:
+        self.playerIndex = self.playerIndexGen.next()
+      self.loopIter = (self.loopIter + 1) % 30
+      self.basex = -((-self.basex + 100) % self.baseShift)
+
+      # player's movement
+      if self.playerVelY < self.playerMaxVelY and not self.playerFlapped:
+        self.playerVelY += self.playerAccY
+      if self.playerFlapped:
+        self.playerFlapped = False
+      self.playerHeight = self.IMAGES['player'][self.playerIndex].get_height()
+      self.playery += min(self.playerVelY, self.BASEY - self.playery - self.playerHeight)
+
+      # move pipes to left
+      for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
+        uPipe['x'] += self.pipeVelX
+        lPipe['x'] += self.pipeVelX
+
+          # add new pipe when first pipe is about to touch left of screen
+      if 0 < self.upperPipes[0]['x'] < 5:
+        newPipe = self.getRandomPipe()
+        self.upperPipes.append(newPipe[0])
+        self.lowerPipes.append(newPipe[1])
+
+      # remove first pipe if its out of the screen
+      if self.upperPipes[0]['x'] < -self.IMAGES['pipe'][0].get_width():
+        self.upperPipes.pop(0)
+        self.lowerPipes.pop(0)
+
+      #self.SCREEN.blit(self.IMAGES['background'], (0,0))
+      self.SCREEN.fill((0,0,0))
+
+      for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
+        self.SCREEN.blit(self.IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
+        self.SCREEN.blit(self.IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
+
+      self.SCREEN.blit(self.IMAGES['base'], (self.basex, self.BASEY))
+      # print score so player overlaps the score
+      self.showScore(self.score)
+      self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
+
       #pygame.image.save(self.SCREEN, 'temp.bmp')
+      #bmpfile = Image.open('temp.bmp');
       imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
       bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
-      return scipy.misc.imresize(
-        np.array(bmpfile, dtype=np.float32), 0.25
-      ), reward, True, {}
+      frames[frame_idx, :, :, :] = np.array(bmpfile, dtype=np.float32)
 
-    playerMidPos = self.playerx + self.IMAGES['player'][0].get_width() / 2
-    for pipe in self.upperPipes:
-      pipeMidPos = pipe['x'] + self.IMAGES['pipe'][0].get_width() / 2
-      if pipeMidPos <= playerMidPos < pipeMidPos + 4:
-        reward += 100
-        self.score += 1
-
-    # playerIndex basex change
-    if (self.loopIter + 1) % 3 == 0:
-      self.playerIndex = self.playerIndexGen.next()
-    self.loopIter = (self.loopIter + 1) % 30
-    self.basex = -((-self.basex + 100) % self.baseShift)
-
-    # player's movement
-    if self.playerVelY < self.playerMaxVelY and not self.playerFlapped:
-      self.playerVelY += self.playerAccY
-    if self.playerFlapped:
-      self.playerFlapped = False
-    self.playerHeight = self.IMAGES['player'][self.playerIndex].get_height()
-    self.playery += min(self.playerVelY, self.BASEY - self.playery - self.playerHeight)
-
-    # move pipes to left
-    for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
-      uPipe['x'] += self.pipeVelX
-      lPipe['x'] += self.pipeVelX
-
-        # add new pipe when first pipe is about to touch left of screen
-    if 0 < self.upperPipes[0]['x'] < 5:
-      newPipe = self.getRandomPipe()
-      self.upperPipes.append(newPipe[0])
-      self.lowerPipes.append(newPipe[1])
-
-    # remove first pipe if its out of the screen
-    if self.upperPipes[0]['x'] < -self.IMAGES['pipe'][0].get_width():
-      self.upperPipes.pop(0)
-      self.lowerPipes.pop(0)
-
-    #self.SCREEN.blit(self.IMAGES['background'], (0,0))
-    self.SCREEN.fill((0,0,0))
-
-    for uPipe, lPipe in zip(self.upperPipes, self.lowerPipes):
-      self.SCREEN.blit(self.IMAGES['pipe'][0], (uPipe['x'], uPipe['y']))
-      self.SCREEN.blit(self.IMAGES['pipe'][1], (lPipe['x'], lPipe['y']))
-
-    self.SCREEN.blit(self.IMAGES['base'], (self.basex, self.BASEY))
-    # print score so player overlaps the score
-    self.showScore(self.score)
-    self.SCREEN.blit(self.IMAGES['player'][self.playerIndex], (self.playerx, self.playery))
-
-    #pygame.image.save(self.SCREEN, 'temp.bmp')
-    #bmpfile = Image.open('temp.bmp');
-    imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
-    bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
-
-    return np.array(bmpfile, dtype=np.float32), reward, False, {}
+    return frames, reward, False, {}
 
   def render(self, mode='human', close=False):
     pygame.display.update()
