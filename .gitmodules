@@ -1,0 +1,3 @@
+[submodule "FlapPyBird"]
+	path = FlapPyBird
+	url = git@github.com:sourabhv/FlapPyBird.git
