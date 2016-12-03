@@ -70,3 +70,9 @@ class QNetwork:
       self.arch['optim'], self.arch['loss']
     ], feed_dict={self.arch['x']: x, self.arch['y']: y})
     return loss
+
+  def predict(self, x, sess):
+    pred = sess.run([
+      self.arch['out']
+    ], feed_dict={self.arch['x']: x})
+    return pred
