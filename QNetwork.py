@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import util
 
@@ -15,12 +16,12 @@ import util
 class QNetwork:
   def conv_layer(self, x, shape, stride, cl):
     key = 'kernel{}'.format(shape[0])
-    self.arch[key] = util._variable_with_weight_decay(key,
-                                                 shape=shape,
-                                                 stddev=5e-2,
-                                                 wd=0.0)
+    self.vars[key] = tf.Variable(
+      np.random.normal(size=tuple(shape)), dtype=tf.float32
+    )
+ 
     self.arch[cl] = tf.nn.conv2d(
-      x, self.arch[key], [1, stride, stride, 1],
+      x, self.vars[key], [1, stride, stride, 1],
       padding='SAME' # TODO: check padding
     )
     return tf.nn.relu(self.arch[cl])
@@ -32,8 +33,12 @@ class QNetwork:
       dim *= d
     x = tf.reshape(x, [-1, dim])
 
-    weights = tf.get_variable(name + 'W', shape=[dim, outdim])
-    biases = tf.get_variable(name + 'B', shape=[outdim])
+    weights = self.vars[name+'W'] = tf.Variable(
+      np.random.normal(size=(dim, outdim)), dtype=tf.float32
+    )
+    biases = self.vars[name+'B'] = tf.Variable(
+      np.random.normal(size=(outdim,)), dtype=tf.float32
+    )
 
     if relu:
       return tf.nn.relu(tf.nn.bias_add(tf.matmul(x, weights), biases))
@@ -46,6 +51,8 @@ class QNetwork:
     self.H = H
     self.A = A
     self.learning_rate = learning_rate
+
+    self.vars = {}
 
     self.arch = {}
     self.arch['x'] = tf.placeholder(dtype=tf.float32, shape=(None, D, D, H))
@@ -77,12 +84,24 @@ class QNetwork:
     ], feed_dict={self.arch['x']: x})
     return pred
 
+  def copy_params(self, other, sess):
+    ops = []
+    for key, val in self.vars.iteritems():
+      ops.append(tf.assign(val, other.vars[key]))
+    sess.run(ops)
+
 if __name__=='__main__':
   qn = QNetwork(84, 4, 2)
+  qn2 = QNetwork(84, 4, 2)
 
   import numpy as np
 
   with tf.Session() as sess:
     sess.run(tf.initialize_all_variables())
     qn.train(np.random.randn(100, 84, 84, 4), np.random.randn(100, 2), sess)
-    print(qn.predict(np.random.randn(1, 84, 84, 4), sess))
+    test_x = np.random.randn(1, 84, 84, 4)
+    print(qn.predict(test_x, sess))
+    print(qn2.predict(test_x, sess))
+    qn2.copy_params(qn, sess)
+    print(qn2.predict(test_x, sess))
+
