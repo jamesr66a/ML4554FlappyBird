@@ -16,10 +16,10 @@ class ReplayMemory:
     if n > self.N:
       raise Exception('Sample length must be <= memory capacity')
 
-    if len(self.memory) < self.N:
+    if len(self.memory) < n:
       return None
 
-    idxs = np.random.choice(xrange(self.N), n, replace=False)
+    idxs = np.random.choice(xrange(len(self.memory)), n, replace=False)
     return [self.memory[idx] for idx in idxs]
 
 if __name__=='__main__':
