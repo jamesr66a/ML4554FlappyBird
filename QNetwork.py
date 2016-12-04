@@ -59,7 +59,8 @@ class QNetwork:
 
     self.arch = {}
     self.arch['x'] = tf.placeholder(dtype=tf.float32, shape=(None, D, D, H))
-    self.arch['y'] = tf.placeholder(dtype=tf.float32, shape=(None, A))
+    self.arch['y'] = tf.placeholder(dtype=tf.float32, shape=(None))
+    self.arch['action'] = tf.placeholder(dtype=tf.float32, shape=(None, A))
     self.arch['b'] = self.arch['x'] # TODO
 
     l1 = 32
@@ -72,20 +73,24 @@ class QNetwork:
     self.arch['i'] = self.fc_layer(self.arch['h'], 256, 'fc1')
     self.arch['out'] = self.fc_layer(self.arch['i'], A, 'fc2', relu=False)
 
-    self.arch['loss'] = tf.reduce_mean(
-     tf.square(self.arch['out'] - self.arch['y'])
+    self.arch['readout'] = tf.reduce_sum(
+      tf.mul(self.arch['out'], self.arch['action']), reduction_indices=1
     )
-    #for key, value in self.vars.iteritems():
-    #  self.arch['loss'] += tf.reduce_mean(0.01*tf.nn.l2_loss(value))
+
+    self.arch['loss'] = tf.reduce_mean(
+     tf.square(self.arch['readout'] - self.arch['y'])
+    )
 
     self.arch['optim'] = tf.train.RMSPropOptimizer(
       learning_rate, momentum=0.95,decay=0.95
     ).minimize(self.arch['loss'])
 
-  def train(self, x, y, sess):
+  def train(self, x, y, actions, sess):
     _, loss = sess.run([
       self.arch['optim'], self.arch['loss']
-    ], feed_dict={self.arch['x']: x, self.arch['y']: y})
+    ],feed_dict={
+        self.arch['x']: x, self.arch['y']: y, self.arch['action']: actions
+      })
     return loss
 
   def predict(self, x, sess):

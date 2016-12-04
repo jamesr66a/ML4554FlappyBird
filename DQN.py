@@ -20,7 +20,7 @@ def step_wrapper(game, action):
  
   return frames, reward, terminal
 
-is_train = False
+is_train = True
 
 with tf.Session() as sess:
   rp = ReplayMemory(1000000)
@@ -63,22 +63,23 @@ with tf.Session() as sess:
           print(mb_size)
           mb_data = np.zeros((mb_size, 84, 84, 4))
           mb_data_1 = np.zeros((mb_size, 84, 84, 4))
-          mb_actions = np.zeros((mb_size, 1), dtype=np.int32)
+          mb_actions = np.zeros((mb_size, 2))
           mb_rewards = np.zeros((mb_size, 1))
           for idx, (x, a, r, x1) in enumerate(minibatch):
             mb_data[idx, :, :, :] = x
             mb_data_1[idx, :, :, :] = x1
-            mb_actions[idx] = a
+            mb_actions[idx, :] = a
             mb_rewards[idx] = r
 
           Qhat_preds = Qhat.predict(mb_data_1, sess)[0]
           max_future_reward = np.amax(Qhat_preds, axis=1)
 
-          ys = Q.predict(mb_data, sess)[0]
-          for idx, action in enumerate(mb_actions):
-            ys[idx, action] = mb_rewards[idx] + 0.99*max_future_reward[idx]
+          ys = np.zeros((mb_size, 1))
+          for idx, reward in enumerate(mb_rewards):
+            ys[idx] = reward + 0.99*max_future_reward[idx]
 
-          loss = Q.train(mb_data, ys, sess)
+          print(ys, mb_actions)
+          loss = Q.train(mb_data, ys, mb_actions, sess)
           print('iteration', t, 'loss', loss, 'reward', reward, 'ep', np.exp(-t/100000.))
 
         t = t + 1
