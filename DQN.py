@@ -60,7 +60,6 @@ with tf.Session() as sess:
         minibatch = rp.sample(mb_size)
         if is_train and minibatch is not None and t % 4 == 0:
           mb_size = len(minibatch)
-          print(mb_size)
           mb_data = np.zeros((mb_size, 84, 84, 4))
           mb_data_1 = np.zeros((mb_size, 84, 84, 4))
           mb_actions = np.zeros((mb_size, 2))
@@ -78,9 +77,12 @@ with tf.Session() as sess:
           for idx, reward in enumerate(mb_rewards):
             ys[idx] = reward + 0.99*max_future_reward[idx]
 
-          print(ys, mb_actions)
           loss = Q.train(mb_data, ys, mb_actions, sess)
-          print('iteration', t, 'loss', loss, 'reward', reward, 'ep', np.exp(-t/100000.))
+          print(
+            'iteration', t, 'loss', loss,
+            'reward', reward[0], 'ep', np.exp(-t/100000.),
+            'avg y', np.average(ys)
+          )
 
         t = t + 1
         if t % 100 == 0:

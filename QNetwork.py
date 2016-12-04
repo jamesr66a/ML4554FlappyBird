@@ -17,7 +17,7 @@ class QNetwork:
   def conv_layer(self, x, shape, stride, cl):
     key = 'kernel{}'.format(shape[0])
     self.vars[key] = tf.Variable(
-      np.random.normal(size=tuple(shape)), dtype=tf.float32
+      tf.truncated_normal(shape, stddev=0.01), dtype=tf.float32
     )
  
     self.arch[cl] = tf.nn.conv2d(
@@ -34,13 +34,10 @@ class QNetwork:
     x = tf.reshape(x, [-1, dim])
 
     weights = self.vars[name+'W'] = tf.Variable(
-      np.random.normal(size=(dim, outdim)), dtype=tf.float32
+      tf.truncated_normal([dim, outdim], stddev=0.01), dtype=tf.float32
     )
-    #weights = self.vars[name+'W'] = tf.Variable(
-    #  tf.contrib.layers.xavier_initializer(), dtype=tf.float32, expected_shape=(dim, outdim)
-    #)
     biases = self.vars[name+'B'] = tf.Variable(
-      np.zeros((outdim,)), dtype=tf.float32
+      tf.truncated_normal([outdim], stddev=0.01), dtype=tf.float32
     )
 
     if relu:
