@@ -36,8 +36,11 @@ class QNetwork:
     weights = self.vars[name+'W'] = tf.Variable(
       np.random.normal(size=(dim, outdim)), dtype=tf.float32
     )
+    #weights = self.vars[name+'W'] = tf.Variable(
+    #  tf.contrib.layers.xavier_initializer(), dtype=tf.float32, expected_shape=(dim, outdim)
+    #)
     biases = self.vars[name+'B'] = tf.Variable(
-      np.random.normal(size=(outdim,)), dtype=tf.float32
+      np.zeros((outdim,)), dtype=tf.float32
     )
 
     if relu:
@@ -59,18 +62,25 @@ class QNetwork:
     self.arch['y'] = tf.placeholder(dtype=tf.float32, shape=(None, A))
     self.arch['b'] = self.arch['x'] # TODO
 
-    self.arch['d'] = self.conv_layer(self.arch['b'], [8, 8, 4, 32], 4, 'c')
-    self.arch['f'] = self.conv_layer(self.arch['d'], [4, 4, 32, 64], 2, 'e')
-    self.arch['h'] = self.conv_layer(self.arch['f'], [3, 3, 64, 64], 1, 'g')
+    l1 = 32
+    l2 = 64
+    fc = 256
+    self.arch['d'] = self.conv_layer(self.arch['b'], [8, 8, 4, l1], 4, 'c')
+    self.arch['f'] = self.conv_layer(self.arch['d'], [4, 4, l1, l2], 2, 'e')
+    self.arch['h'] = self.conv_layer(self.arch['f'], [3, 3, l2, l2], 1, 'g')
 
-    self.arch['i'] = self.fc_layer(self.arch['h'], 512, 'fc1')
+    self.arch['i'] = self.fc_layer(self.arch['h'], 256, 'fc1')
     self.arch['out'] = self.fc_layer(self.arch['i'], A, 'fc2', relu=False)
 
     self.arch['loss'] = tf.reduce_mean(
-      tf.nn.l2_loss(self.arch['out'] - self.arch['y'])
+     tf.square(self.arch['out'] - self.arch['y'])
     )
-    self.arch['optim'] = tf.train.RMSPropOptimizer(learning_rate)\
-      .minimize(self.arch['loss'])
+    #for key, value in self.vars.iteritems():
+    #  self.arch['loss'] += tf.reduce_mean(0.01*tf.nn.l2_loss(value))
+
+    self.arch['optim'] = tf.train.RMSPropOptimizer(
+      learning_rate, momentum=0.95,decay=0.95
+    ).minimize(self.arch['loss'])
 
   def train(self, x, y, sess):
     _, loss = sess.run([

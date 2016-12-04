@@ -149,7 +149,7 @@ class FlappyBirdGame:
       (steps, 84, 84), dtype=np.float32
     )
     for frame_idx in xrange(steps):
-      reward = 0
+      reward = 1
       action = action if frame_idx == 0 else 0
       if action == 1:
         if self.playery > -2 * self.IMAGES['player'][0].get_height():
@@ -165,7 +165,7 @@ class FlappyBirdGame:
         #pygame.image.save(self.SCREEN, 'temp.bmp')
         imgstr = pygame.image.tostring(self.SCREEN, 'RGB')
         bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr);
-        # TODO: fix
+        reward += -100
         return frames, reward, True, {}
 
       playerMidPos = self.playerx + self.IMAGES['player'][0].get_width() / 2
