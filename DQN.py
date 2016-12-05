@@ -2,11 +2,12 @@ from FlappyBirdGame import FlappyBirdGame
 from ReplayMemory import ReplayMemory
 from QNetwork import QNetwork
 
+import cPickle as pickle
 import numpy as np
 import os
 import tensorflow as tf
 
-ep_prob = 0.1
+ep_prob = 1.0
 
 def sample_action():
   return np.random.randint(0, 2)
@@ -23,8 +24,8 @@ def step_wrapper(game, action):
 is_train = True
 
 with tf.Session() as sess:
-  rp = ReplayMemory(1000000)
-  learning_rate = 0.005
+  rp = ReplayMemory(1000)
+  learning_rate = 0.0005
   Q = QNetwork(84, 4, 2, learning_rate=learning_rate)
   Qhat = QNetwork(84, 4, 2, learning_rate=learning_rate)
   sess.run(tf.global_variables_initializer())
@@ -34,13 +35,16 @@ with tf.Session() as sess:
 
   saver = tf.train.Saver()
 
-  if os.path.exists('./model.ckpt.index'):
+  if os.path.exists('./model.ckpt.index') and os.path.exists('./model.ckpt.rm'):
     saver.restore(sess, './model.ckpt')
+    if is_train:
+      with open('./model.ckpt.rm') as f:
+        rp = pickle.load(f)
     print('Model restored from ./model.ckpt')
 
   t = 0
   try:
-    for episode in xrange(1000000):
+    while True:
       game.reset()
       frames, reward, terminal = step_wrapper(game, sample_action())
       while not terminal:
@@ -50,7 +54,8 @@ with tf.Session() as sess:
         else:
           action = np.argmax(Q.predict(frames, sess))
           if not is_train:
-            print(Q.predict(frames, sess))
+            pred = Q.predict(frames, sess)
+            print(np.argmax(pred), pred)
 
         frames_new, reward, terminal = step_wrapper(game, action)
         rp.insert(frames, action, reward, frames_new)
@@ -95,3 +100,6 @@ with tf.Session() as sess:
     pass
 
   print(saver.save(sess, './model.ckpt'))
+  if is_train:
+    with open('./model.ckpt.rm', 'w') as f:
+      pickle.dump(rp, f)
