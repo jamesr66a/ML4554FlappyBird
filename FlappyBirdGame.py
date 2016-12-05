@@ -3,6 +3,7 @@
 # Adapted from https://github.com/sourabhv/FlapPyBird
 
 from skimage import color
+from skimage import filters
 import Image
 import itertools
 import os
@@ -223,7 +224,8 @@ class FlappyBirdGame:
       bmpfile = Image.frombytes('RGB', self.SCREEN.get_size(), imgstr)
       frames[frame_idx, :, :] = color.rgb2gray(scipy.misc.imresize(
         np.array(bmpfile, dtype=np.float32), (84, 84)
-      ))
+      )) > 0.3
+
 
       if display:
         self.render()
@@ -265,7 +267,7 @@ class FlappyBirdGame:
     player['h'] = self.IMAGES['player'][0].get_height()
 
     # if player crashes into ground
-    if player['y'] + player['h'] >= self.BASEY - 1:
+    if player['y'] + player['h'] >= self.BASEY - 1 or player['y'] <= 0:
       return [True, True]
     else:
 
