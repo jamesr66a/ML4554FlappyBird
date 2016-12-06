@@ -7,12 +7,13 @@ class ReplayMemory:
     self.memory = [] # FIFO queue
 
   def insert(self, xt, at, rt, xt_1):
-    a = np.zeros((1, 2))
-    a[0, at] = 1.0
-    self.memory.append((xt, a, rt, xt_1))
+    if rt != 0 or np.random.random() < 0.05:
+      a = np.zeros((1, 2))
+      a[0, at] = 1.0
+      self.memory.append((xt, a, rt, xt_1))
 
-    if len(self.memory) > self.N:
-      self.memory.pop(0)
+      if len(self.memory) > self.N:
+        self.memory.pop(0)
 
   def sample(self, n):
     if n > self.N:

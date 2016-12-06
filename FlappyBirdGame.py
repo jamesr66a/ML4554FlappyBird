@@ -150,7 +150,7 @@ class FlappyBirdGame:
       (steps, 84, 84), dtype=np.float32
     )
     for frame_idx in xrange(steps):
-      reward = 0
+      reward = 0.0
       action = action if frame_idx == 0 else 0
       if action == 1:
         if self.playery > -2 * self.IMAGES['player'][0].get_height():

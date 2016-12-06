@@ -65,13 +65,13 @@ class QNetwork:
     
     l1 = 32
     l2 = 64
-    fc = 256
+    fc = 512
     with tf.name_scope('layers') as scope:
-      self.arch['d'] = self.conv_layer(self.arch['b'], [8, 8, 4, l1], 4, 'c')
+      self.arch['d'] = self.conv_layer(self.arch['b'], [8, 8, H, l1], 4, 'c')
       self.arch['f'] = self.conv_layer(self.arch['d'], [4, 4, l1, l2], 2, 'e')
       self.arch['h'] = self.conv_layer(self.arch['f'], [3, 3, l2, l2], 1, 'g')
 
-      self.arch['i'] = self.fc_layer(self.arch['h'], 256, 'fc1')
+      self.arch['i'] = self.fc_layer(self.arch['h'], fc, 'fc1')
       self.arch['out'] = self.fc_layer(self.arch['i'], A, 'fc2', relu=False)
 
     with tf.name_scope('optimization') as scope:

@@ -7,7 +7,7 @@ import numpy as np
 import os
 import tensorflow as tf
 
-ep_prob = 1.0
+ep_prob = 0.5
 
 def sample_action():
   return np.random.randint(0, 2)
@@ -15,19 +15,20 @@ def sample_action():
 display = True
 
 def step_wrapper(game, action):
-  frames, reward, terminal, _ = game.step(action, display=display, steps=4)
+  frames, reward, terminal, _ = game.step(action, display=display, steps=6)
   frames = np.transpose(frames, [1, 2, 0])
   frames = np.expand_dims(frames, 0)
  
   return frames, reward, terminal
 
-is_train = True
+is_train = False
 
 with tf.Session() as sess:
+  H = 6
   rp = ReplayMemory(1000)
-  learning_rate = 0.0005
-  Q = QNetwork(84, 4, 2, learning_rate=learning_rate)
-  Qhat = QNetwork(84, 4, 2, learning_rate=learning_rate)
+  learning_rate = 0.5
+  Q = QNetwork(84, H, 2, learning_rate=learning_rate)
+  Qhat = QNetwork(84, H, 2, learning_rate=learning_rate)
   sess.run(tf.global_variables_initializer())
   Qhat.copy_params(Q, sess)
 
@@ -63,10 +64,10 @@ with tf.Session() as sess:
 
         mb_size = 32
         minibatch = rp.sample(mb_size)
-        if is_train and minibatch is not None and t % 4 == 0:
+        if is_train and minibatch is not None:
           mb_size = len(minibatch)
-          mb_data = np.zeros((mb_size, 84, 84, 4))
-          mb_data_1 = np.zeros((mb_size, 84, 84, 4))
+          mb_data = np.zeros((mb_size, 84, 84, H))
+          mb_data_1 = np.zeros((mb_size, 84, 84, H))
           mb_actions = np.zeros((mb_size, 2))
           mb_rewards = np.zeros((mb_size, 1))
           for idx, (x, a, r, x1) in enumerate(minibatch):
@@ -90,7 +91,7 @@ with tf.Session() as sess:
           )
 
         t = t + 1
-        if t % 100 == 0:
+        if t % 10000 == 0:
           Qhat.copy_params(Q, sess)
 
         if not is_train:
